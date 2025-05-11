@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Alpha Vantage API configuration
-ALPHA_VANTAGE_API_KEY = os.getenv('AOM7U1B9PMG2WB7', 'demo')  # Use 'demo' as fallback
+ALPHA_VANTAGE_API_KEY = os.getenv('JAOM7U1B9PMG2WB7', 'demo')  # Use 'demo' as fallback
 
 # API endpoints
 ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"

@@ -23,7 +23,7 @@ Use the sidebar to navigate through the different sections of the application.
 
 * **Home:** Introduction to the app.
 * **Portfolio Construction:** Build and optimize your investment portfolio.
-* **Backtesting:** (Coming Soon) Test your portfolio strategies against historical data.
+* **Backtesting:** Test your portfolio strategies against historical data.
 * **Analysis:** (Coming Soon) Analyze portfolio performance and characteristics.
 """)
 

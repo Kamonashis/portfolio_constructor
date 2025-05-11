@@ -23,15 +23,33 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Main page content
-st.title("Portfolio Constructor")
-st.write("Welcome to the Portfolio Constructor app! Use the sidebar to navigate between different sections.")
+st.write("""
+# Welcome to Portfolio Constructor! 🚀
 
-# Add some helpful information
-st.markdown("""
-### Available Features:
-- **🏗️ Portfolio Construction**: Build and optimize your investment portfolio
-- **📊 Backtesting**: Test your portfolio strategy against historical data
-- **📈 Analysis**: Analyze portfolio performance and risk metrics
+Your comprehensive tool for portfolio construction, optimization, and analysis.
 
-**Note**: Use the sidebar to navigate between these features.
+## Features
+
+### 🏗️ Portfolio Construction
+- Build optimized portfolios using various strategies
+- Customize risk parameters and constraints
+- Visualize portfolio allocations and risk metrics
+
+### 📊 Backtesting
+- Test portfolio strategies against historical data
+- Analyze performance metrics and risk measures
+- Compare different portfolio configurations
+
+### 📈 Analysis
+- Deep dive into portfolio performance
+- Generate detailed reports and visualizations
+- Export results for further analysis
+
+## Getting Started
+1. Use the sidebar to navigate between features
+2. Start with Portfolio Construction to build your portfolio
+3. Use Backtesting to validate your strategy
+4. Analyze results to make informed decisions
+
+**Disclaimer:** This app is for educational purposes only and should not be considered financial advice.
 """)

@@ -1,8 +1,7 @@
-# pages/2_🏗️_Portfolio_Construction.py
+# pages/1_Portfolio_Construction.py
 import streamlit as st
 import pandas as pd
 import numpy as np
-import yfinance as yf
 import cvxpy as cp
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -17,154 +16,8 @@ from datetime import datetime, timedelta
 import io
 from scipy.optimize import minimize
 import warnings
-import time
-from functools import lru_cache
-import threading
-from queue import Queue
+from data_fetcher import fetch_data
 warnings.filterwarnings('ignore')
-
-# Add RateLimiter class
-class RateLimiter:
-    def __init__(self, max_requests=2, time_window=1):
-        self.max_requests = max_requests
-        self.time_window = time_window
-        self.requests = []
-        self.lock = threading.Lock()
-
-    def wait_if_needed(self):
-        with self.lock:
-            now = time.time()
-            # Remove old requests
-            self.requests = [req_time for req_time in self.requests if now - req_time < self.time_window]
-            
-            if len(self.requests) >= self.max_requests:
-                # Wait until we can make another request
-                sleep_time = self.requests[0] + self.time_window - now
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
-            
-            self.requests.append(time.time())
-
-# Create a global rate limiter
-rate_limiter = RateLimiter(max_requests=2, time_window=1)
-
-# Add cached data fetching
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def fetch_cached_data(ticker, start_date, end_date):
-    """Fetch data for a single ticker with rate limiting"""
-    try:
-        rate_limiter.wait_if_needed()
-        stock = yf.Ticker(ticker)
-        data = stock.history(start=start_date, end=end_date)
-        if not data.empty:
-            return data
-        return None
-    except Exception as e:
-        st.warning(f"Error fetching data for {ticker}: {str(e)}")
-        return None
-
-# Replace the existing fetch_data function with enhanced version
-@st.cache_data
-def fetch_data(tickers, start_date, end_date):
-    """
-    Enhanced data fetching with rate limiting and retries
-    """
-    try:
-        st.info(f"Fetching data for tickers: {', '.join(tickers)}")
-        st.info(f"Date range: {start_date} to {end_date}")
-        
-        # Validate tickers with rate limiting
-        valid_tickers = []
-        invalid_tickers = []
-        progress_bar = st.progress(0)
-        
-        for i, ticker in enumerate(tickers):
-            try:
-                # Quick validation check with rate limiting
-                rate_limiter.wait_if_needed()
-                stock = yf.Ticker(ticker)
-                info = stock.info
-                
-                if info and 'regularMarketPrice' in info:
-                    valid_tickers.append(ticker)
-                else:
-                    invalid_tickers.append(ticker)
-                    st.warning(f"Could not validate ticker {ticker}: No market data available")
-                
-                progress_bar.progress((i + 1) / len(tickers))
-                time.sleep(0.5)  # Additional delay between requests
-                
-            except Exception as e:
-                invalid_tickers.append(ticker)
-                st.warning(f"Could not validate ticker {ticker}: {str(e)}")
-                time.sleep(1)  # Wait longer after an error
-
-        if invalid_tickers:
-            st.warning(f"Invalid or unavailable tickers: {', '.join(invalid_tickers)}")
-            if not valid_tickers:
-                st.error("No valid tickers to fetch data for.")
-                return None
-            tickers = valid_tickers
-
-        # Fetch data with rate limiting and retries
-        all_data = {}
-        for ticker in valid_tickers:
-            for attempt in range(3):  # Try up to 3 times
-                try:
-                    data = fetch_cached_data(ticker, start_date, end_date)
-                    if data is not None and not data.empty:
-                        all_data[ticker] = data
-                        break
-                    else:
-                        if attempt < 2:  # Don't wait on last attempt
-                            st.warning(f"Retrying {ticker} (attempt {attempt + 1}/3)")
-                            time.sleep(2 ** attempt)  # Exponential backoff
-                except Exception as e:
-                    if attempt < 2:
-                        st.warning(f"Error fetching {ticker}, retrying: {str(e)}")
-                        time.sleep(2 ** attempt)
-                    else:
-                        st.error(f"Failed to fetch data for {ticker} after 3 attempts")
-
-        if not all_data:
-            st.error("Could not fetch data for any tickers.")
-            return None
-
-        # Combine all data
-        price_data = pd.DataFrame()
-        for ticker, data in all_data.items():
-            if 'Adj Close' in data.columns:
-                price_data[ticker] = data['Adj Close']
-            elif 'Close' in data.columns:
-                price_data[ticker] = data['Close']
-            else:
-                st.warning(f"No price data found for {ticker}")
-
-        if price_data.empty:
-            st.error("No valid price data available.")
-            return None
-
-        # Validate the data
-        st.success(f"Successfully fetched data for {len(price_data.columns)} assets")
-        st.write(f"Data points: {len(price_data)}")
-        st.write(f"Date range: {price_data.index[0]} to {price_data.index[-1]}")
-        
-        # Check for missing values
-        missing_values = price_data.isnull().sum()
-        if missing_values.any():
-            st.warning("Missing values detected:")
-            st.write(missing_values[missing_values > 0])
-
-        return price_data
-
-    except Exception as e:
-        st.error(f"Error in data fetching process: {str(e)}")
-        st.error("Please try the following:")
-        st.error("1. Check your internet connection")
-        st.error("2. Verify the ticker symbols are correct")
-        st.error("3. Try a different date range")
-        st.error("4. If the problem persists, try again in a few minutes")
-        return None
 
 st.set_page_config(
     page_title="Portfolio Construction",
@@ -346,32 +199,6 @@ with col1:
 with col2:
     max_weight = st.number_input("Maximum Weight per Asset (%)", 0.0, 100.0, 100.0) / 100
 
-# Sector constraints (if available)
-try:
-    sector_data = yf.Ticker(tickers[0]).info.get('sector')
-    if sector_data:
-        st.subheader("Sector Constraints")
-        sectors = set()
-        for ticker in tickers:
-            try:
-                sector = yf.Ticker(ticker).info.get('sector')
-                if sector:
-                    sectors.add(sector)
-            except:
-                continue
-        
-        if sectors:
-            for sector in sectors:
-                max_sector_weight = st.number_input(
-                    f"Maximum {sector} Weight (%)",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=100.0,
-                    step=5.0
-                ) / 100
-except:
-    pass
-
 # --- Portfolio Optimization ---
 st.header("6. Optimized Portfolio Weights")
 
@@ -454,7 +281,7 @@ if st.button("Run Optimization"):
         else:
             objective = cp.Maximize(mean_returns.values @ weights)
 
-    problem = cp.Problem(objective, constraints)
+        problem = cp.Problem(objective, constraints)
 
     # Add input validation
     def validate_inputs():
@@ -921,4 +748,4 @@ if st.button("Run Optimization"):
 
     except Exception as e:
         st.error(f"An error occurred during optimization: {str(e)}")
-        st.write("Please check your inputs and try again.")
+        st.write("Please check your inputs and try again.") 

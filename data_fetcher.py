@@ -54,6 +54,7 @@ def fetch_stock_data(symbol, start_date, end_date):
             raise Exception(data['Error Message'])
         
         if 'Time Series (Daily)' not in data:
+            st.error(f"No data found for {symbol}. Full API response: {data}")
             raise Exception(f"No data found for {symbol}")
         
         # Convert to DataFrame

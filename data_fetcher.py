@@ -71,8 +71,10 @@ def fetch_stock_data(symbol, start_date, end_date):
             df = df[['5. adjusted close']].rename(columns={'5. adjusted close': 'Adj Close'})
         elif 'Adj Close' in df.columns:
             df = df[['Adj Close']]
+        elif 'adjusted close' in df.columns:
+            df = df[['adjusted close']].rename(columns={'adjusted close': 'Adj Close'})
         else:
-            st.error(f"Expected '5. adjusted close' column not found for {symbol}. Columns returned: {list(df.columns)}")
+            st.error(f"Expected '5. adjusted close' or 'adjusted close' column not found for {symbol}. Columns returned: {list(df.columns)}")
             return None
         
         return df

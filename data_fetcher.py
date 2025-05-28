@@ -67,7 +67,13 @@ def fetch_stock_data(symbol, start_date, end_date):
         df = df.loc[start_date:end_date]
         
         # Select and rename relevant columns
-        df = df[['5. adjusted close']].rename(columns={'5. adjusted close': 'Adj Close'})
+        if '5. adjusted close' in df.columns:
+            df = df[['5. adjusted close']].rename(columns={'5. adjusted close': 'Adj Close'})
+        elif 'Adj Close' in df.columns:
+            df = df[['Adj Close']]
+        else:
+            st.error(f"Expected '5. adjusted close' column not found for {symbol}. Columns returned: {list(df.columns)}")
+            return None
         
         return df
         
@@ -173,4 +179,4 @@ def fetch_data(tickers, start_date, end_date):
         st.error("2. Verify the ticker symbols are correct")
         st.error("3. Try a different date range")
         st.error("4. If the problem persists, try again in a few minutes")
-        return None 
+        return None

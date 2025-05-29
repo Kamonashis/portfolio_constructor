@@ -4,7 +4,7 @@ import time
 import threading
 from datetime import datetime, timedelta
 import streamlit as st
-from config import ALPHA_VANTAGE_API_KEY, ALPHA_VANTAGE_BASE_URL, MAX_REQUESTS_PER_MINUTE
+import pandas_datareader.data as web
 
 class RateLimiter:
     def __init__(self, max_requests, time_window):
@@ -28,60 +28,26 @@ class RateLimiter:
             self.requests.append(time.time())
 
 # Create a global rate limiter
-rate_limiter = RateLimiter(MAX_REQUESTS_PER_MINUTE, 60)  # 5 requests per minute
+rate_limiter = RateLimiter(5, 60)  # 5 requests per minute
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def fetch_stock_data(symbol, start_date, end_date):
     """
-    Fetch daily stock data from Alpha Vantage
+    Fetch daily stock data using pandas_datareader (Yahoo Finance)
     """
     try:
-        rate_limiter.wait_if_needed()
-        
-        params = {
-            'function': 'TIME_SERIES_DAILY_ADJUSTED',
-            'symbol': symbol,
-            'outputsize': 'full',
-            'apikey': ALPHA_VANTAGE_API_KEY
-        }
-        
-        response = requests.get(ALPHA_VANTAGE_BASE_URL, params=params)
-        response.raise_for_status()
-        
-        data = response.json()
-        
-        if 'Error Message' in data:
-            raise Exception(data['Error Message'])
-        
-        if 'Time Series (Daily)' not in data:
-            st.error(f"No data found for {symbol}. Full API response: {data}")
-            raise Exception(f"No data found for {symbol}")
-        
-        # Convert to DataFrame
-        df = pd.DataFrame.from_dict(data['Time Series (Daily)'], orient='index')
-        df.index = pd.to_datetime(df.index)
-        
-        # Rename columns
-        df.columns = [col.split('. ')[1] for col in df.columns]
-        
-        # Filter date range
-        df = df.loc[start_date:end_date]
-        
-        # Select and rename relevant columns
-        if '5. adjusted close' in df.columns:
-            df = df[['5. adjusted close']].rename(columns={'5. adjusted close': 'Adj Close'})
-        elif 'Adj Close' in df.columns:
-            df = df[['Adj Close']]
-        elif 'adjusted close' in df.columns:
-            df = df[['adjusted close']].rename(columns={'adjusted close': 'Adj Close'})
-        else:
-            st.error(f"Expected '5. adjusted close' or 'adjusted close' column not found for {symbol}. Columns returned: {list(df.columns)}")
+        # Yahoo expects string dates
+        start = start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else str(start_date)
+        end = end_date.strftime('%Y-%m-%d') if hasattr(end_date, 'strftime') else str(end_date)
+        df = web.DataReader(symbol, 'yahoo', start, end)
+        if df.empty:
+            st.error(f"No data found for {symbol} from Yahoo Finance.")
             return None
-        
+        # Only keep the Adjusted Close column
+        df = df[["Adj Close"]]
         return df
-        
     except Exception as e:
-        st.error(f"Error fetching data for {symbol}: {str(e)}")
+        st.error(f"Error fetching data for {symbol} from Yahoo Finance: {str(e)}")
         return None
 
 @st.cache_data

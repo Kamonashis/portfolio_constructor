@@ -33,25 +33,29 @@ rate_limiter = RateLimiter(5, 60)  # 5 requests per minute
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def fetch_stock_data(symbol, start_date, end_date):
     """
-    Fetch daily stock data using pandas_datareader (Yahoo Finance)
+    Fetch daily stock data using pandas_datareader (Yahoo Finance) with retry logic
     """
-    try:
-        # Yahoo expects string dates
-        start = start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else str(start_date)
-        end = end_date.strftime('%Y-%m-%d') if hasattr(end_date, 'strftime') else str(end_date)
-        df = web.DataReader(symbol, 'yahoo', start, end)
-        if df.empty:
-            st.error(f"No data found for {symbol} from Yahoo Finance.")
-            return None
-        # Only keep the Adjusted Close column
-        df = df[["Adj Close"]]
-        return df
-    except Exception as e:
-        if "'NoneType' object has no attribute 'group'" in str(e):
-            st.error(f"Yahoo Finance returned an unexpected response for {symbol}. This may be due to an invalid ticker or a temporary issue with Yahoo Finance.")
-        else:
-            st.error(f"Error fetching data for {symbol} from Yahoo Finance: {str(e)}")
-        return None
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            # Yahoo expects string dates
+            start = start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else str(start_date)
+            end = end_date.strftime('%Y-%m-%d') if hasattr(end_date, 'strftime') else str(end_date)
+            df = web.DataReader(symbol, 'yahoo', start, end)
+            if df.empty:
+                st.error(f"No data found for {symbol} from Yahoo Finance.")
+                return None
+            # Only keep the Adjusted Close column
+            df = df[["Adj Close"]]
+            return df
+        except Exception as e:
+            if "'NoneType' object has no attribute 'group'" in str(e):
+                st.warning(f"Yahoo Finance returned an unexpected response for {symbol} (attempt {attempt+1}/{max_attempts}). This may be due to an invalid ticker or a temporary issue with Yahoo Finance.")
+            else:
+                st.warning(f"Error fetching data for {symbol} from Yahoo Finance (attempt {attempt+1}/{max_attempts}): {str(e)}")
+            time.sleep(1)  # Wait before retrying
+    st.error(f"Failed to fetch data for {symbol} from Yahoo Finance after {max_attempts} attempts. Please check your internet connection, ticker symbol, or try again later. You can also check https://finance.yahoo.com/quote/{symbol} to verify the ticker.")
+    return None
 
 @st.cache_data
 def fetch_data(tickers, start_date, end_date):

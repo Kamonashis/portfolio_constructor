@@ -16,7 +16,9 @@ from datetime import datetime, timedelta
 import io
 from scipy.optimize import minimize
 import warnings
+import yfinance as yf
 from data_fetcher import fetch_data
+
 warnings.filterwarnings('ignore')
 
 st.set_page_config(
@@ -223,7 +225,9 @@ with col2:
 # --- Portfolio Optimization ---
 st.header("6. Optimized Portfolio Weights")
 
-if st.button("Run Optimization"):
+run_optimization = st.button("Run Optimization")
+
+if run_optimization:
     num_assets = len(tickers)
     if num_assets == 0:
         st.warning("No valid assets to optimize.")

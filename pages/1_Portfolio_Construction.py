@@ -112,19 +112,40 @@ st.write(cov_matrix)
 # --- Optimization Options ---
 st.header("5. Select Optimization Model and Objective")
 
-# Optimization Strategy Selection
-optimization_strategy = st.selectbox(
-    "Select Optimization Strategy:",
+# User chooses what to optimize for
+optimization_goal = st.selectbox(
+    "What do you want to optimize your portfolio for?",
     [
-        "Mean-Variance Optimization",
+        "Maximize Sharpe Ratio",
+        "Minimize Volatility",
+        "Maximize Return",
+        "Target Return",
         "Risk Parity",
-        "Maximum Sharpe Ratio",
-        "Minimum Volatility",
         "Maximum Diversification",
         "Equal Risk Contribution",
         "Black-Litterman"
     ]
 )
+
+# Map optimization_goal to strategy and objective
+if optimization_goal in ["Maximize Sharpe Ratio", "Minimize Volatility", "Maximize Return", "Target Return"]:
+    optimization_strategy = "Mean-Variance Optimization"
+    if optimization_goal == "Target Return":
+        optimization_objective = "Target Return"
+    elif optimization_goal == "Maximize Sharpe Ratio":
+        optimization_objective = "Maximize Sharpe Ratio"
+    elif optimization_goal == "Minimize Volatility":
+        optimization_objective = "Minimize Volatility"
+    else:
+        optimization_objective = "Maximize Return"
+elif optimization_goal == "Risk Parity":
+    optimization_strategy = "Risk Parity"
+elif optimization_goal == "Maximum Diversification":
+    optimization_strategy = "Maximum Diversification"
+elif optimization_goal == "Equal Risk Contribution":
+    optimization_strategy = "Equal Risk Contribution"
+elif optimization_goal == "Black-Litterman":
+    optimization_strategy = "Black-Litterman"
 
 # Strategy-specific parameters
 if optimization_strategy == "Mean-Variance Optimization":
@@ -748,4 +769,4 @@ if st.button("Run Optimization"):
 
     except Exception as e:
         st.error(f"An error occurred during optimization: {str(e)}")
-        st.write("Please check your inputs and try again.") 
+        st.write("Please check your inputs and try again.")

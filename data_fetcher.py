@@ -46,7 +46,7 @@ def fetch_stock_data(symbol, start_date, end_date):
                 st.error(f"No data found for {symbol} from Yahoo Finance.")
                 return None
             # Only keep the Adjusted Close column
-            df = df[["Adj Close"]]
+            df = df[["Close"]]
             return df
         except Exception as e:
             if "'NoneType' object has no attribute 'group'" in str(e):

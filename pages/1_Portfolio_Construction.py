@@ -63,7 +63,7 @@ risk_free_rate = st.number_input(
     "Risk-Free Rate (Annual %):",
     min_value=0.0,
     max_value=20.0,
-    value=2.0,
+    value=4.0,
     step=0.1
 ) / 100  # Convert to decimal
 

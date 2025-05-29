@@ -47,7 +47,10 @@ def fetch_stock_data(symbol, start_date, end_date):
         df = df[["Adj Close"]]
         return df
     except Exception as e:
-        st.error(f"Error fetching data for {symbol} from Yahoo Finance: {str(e)}")
+        if "'NoneType' object has no attribute 'group'" in str(e):
+            st.error(f"Yahoo Finance returned an unexpected response for {symbol}. This may be due to an invalid ticker or a temporary issue with Yahoo Finance.")
+        else:
+            st.error(f"Error fetching data for {symbol} from Yahoo Finance: {str(e)}")
         return None
 
 @st.cache_data
